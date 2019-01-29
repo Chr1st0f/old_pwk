@@ -34,6 +34,11 @@ import re
 NUMBER_OF_THREADS = 30
 timeout_threads = 0.1
 portlist = range(1024)
+port_param_max = 1025
+port_status = {
+    True: 'OPEN',
+    False: 'CLOSED'
+}
 commom_ports = {
     21:  "ftp",
     22:  "ssh",
@@ -44,9 +49,10 @@ commom_ports = {
     110: "pop3",
     139: "netbios",
     443: "https",
-    445: "microsoft-ds",
+    445: "ms-ds",
 }# host = sys.argv[1]
 port_queue = queue.Queue()  # Create a Queue object
+result_dic = {} # Store all scan result: char host, int port, bool opened
 
 
 # Function part ####################################################################
@@ -84,10 +90,10 @@ def get_args():
             p_min, p_max = p.split("-")
             for r in range(int(p_min), int(p_max)+1):
                 port_l.append(r)
-        elif re.search(r'^[0-9]{1,4}$', p) and int(p) < 1025:
+        elif re.search(r'^[0-9]{1,4}$', p) and int(p) < port_param_max:
             port_l.append(int(p))
         else:
-            print("Error : param {} not taken into account".format(p))
+            print("Error : param {} not taken into account. Max {}".format(p,port_param_max))
     port_l=sorted(list(set(port_l))) # Convert list to set to delete duplicate values and sort
     # Treate net and target args: -target and -net
     if args.net:
@@ -145,22 +151,33 @@ def scanner_worker_thread():
         what I want to launch in my thread """
     while True:
         host, port = port_queue.get()  # Get the next (host,port) in the queue
-
         if is_port_open(host, port):
-            if port in commom_ports:
-                print("{}({}) is OPEN on {}".format(port, commom_ports[port], host))
-            else:
-                print("{} is OPEN on {}".format(port, host))
+            result_dic[host, port]= True
         else:
-            if not fl_port_open:
-                if port in commom_ports:
-                    print("{}({}) is CLOSED on {}".format(port, commom_ports[port], host))
-                else:
-                    print("{} is CLOSED on {}".format(port, host))
-
-
+            result_dic[host, port] = False
         port_queue.task_done()  # After a get in the queue to validate and consume
 
+def print_result(r_dic):
+    for (host, port), opened in sorted(r_dic.items()):
+        port_t = "({:7s})".format(commom_ports[port]) if port in commom_ports else ""
+        if opened or ( not opened and not fl_port_open ):
+            print("{:15s}/{:4d} {:9s} {:6s}".format(host, port, port_t, port_status[opened]))
+
+            #if not fl_port_open: # if flag open non activated
+
+       # else : # if port open
+
+
+            #port_t= commom_ports[port] if port in commom_ports else port_t="*******"
+          #   print("{:15s} {:3d} -> {:6s}".format(host, port, port_status[opened]))
+
+
+'''        
+            print("{} {} -> {}".format(host,port,port_status[opened]))
+            
+                print("{} {}({}) -> {}".format(host, port, commom_ports[port], port_status[opened]))
+        elif !fl_port_open:
+'''
 
 # Main ###############################################################################
 start_time = time.time()
@@ -180,7 +197,7 @@ if host_list and port_list:
     for h in host_list:
         for p in port_list:
             port_queue.put((h, p))  # Fill the queue with tuple (host,port)
-
     port_queue.join()  # Waiting for all threads are terminated. Timeout in second
+    print_result(result_dic)
 end_time = time.time()
 print("Done. Scanning took {:5.2f} sec".format(end_time - start_time))
