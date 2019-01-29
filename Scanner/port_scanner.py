@@ -18,7 +18,7 @@ Next Feature :  I am going to include the next actions regarding a specific port
                 ( to avoid a HTTP hidden on an exotic port number )
 
 If you would like to use this script, no problem but you have ti understand how it work. 
-It the goal of this script. 
+It the goal of this script.
 
 '''
 
