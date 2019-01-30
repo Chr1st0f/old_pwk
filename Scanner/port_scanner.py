@@ -89,48 +89,45 @@ def get_args():
     # Treate args
     port_l = list()
     host_l = list()
-    fl_verbose = True if args.verbose else False
-    # Treate port args: -port
+    fl_verbose = True if args.verbose else False # Activate the global flag verbose used
+
+    # Treate port args: -port and load in port_l
     for p in args.port[0].split(","):
-        p_r = re.search(r'^[0-9]{1,4}\-[0-9]{1,4}$', p)
-        if p_r:
+        if re.search(r'^[0-9]{1,4}\-[0-9]{1,4}$', p):   # Check if port range
             p_min, p_max = p.split("-")
             for r in range(int(p_min), int(p_max)+1):
                 port_l.append(r)
-        elif re.search(r'^[0-9]{1,4}$', p) and int(p) < port_param_max:
+        elif re.search(r'^[0-9]{1,4}$', p) and int(p) < port_param_max: # if port < 1024
             port_l.append(int(p))
         else:
             print_message("Param ( {} ) not taken into account. Port Max {}".format(p, port_param_max),
                           'E')
+    port_l= sorted(list(set(port_l))) if port_l else None # Convert list to set to delete duplicate values and sort
 
-    port_l=sorted(list(set(port_l))) # Convert list to set to delete duplicate values and sort
     # Treate net and target args: -target and -net
     if args.net:
         # Split a network to a list of IPs
         for net_field in args.net[0].split(","):
             n, m = re.split(r'/', net_field)
-            # n, m = net_field.split("/")
-            if m and m != '24':
+            if m and m != '24':         # only manage this netmask
                 print_message("Error : param ( {}/{} ) not taken into account".format(n,m), 'E')
                 print_message("Only 24 mask is implemented", 'E')
             elif re.search(r'^([0-9]{1,3}\.){3}[0-9]{1,3}$', n):
                 for r in range(1, 255):
                     host_l.append(re.search(r'^([0-9]{1,3}\.){3}', n).group(0) + str(r))
-                host_l = list(set(host_l)) # Convert list to set to delete duplicate values
-                return host_l, port_l, args.open
+
+               # return host_l, port_l, args.open
             else:
                 print_message("Error : Bad network ( {}/{} ) not taken into account.".format(n,m), 'E')
     elif args.target:
         for h in args.target[0].split(","):
             # Check pattern in the host 1-25 chars with . allowed
-            if re.search(r'^[A-Za-z0-9.]{1,25}$', h):
+            if re.search(r'^[A-Za-z0-9._]{1,25}$', h):
                 host_l.append(h)
             else:
                 print_message("Error : Host ( {} ) not taken into account.".format(h), 'E')
-        host_l = list(set(host_l))  # Convert list to set to delete duplicate values
-
-        return host_l, port_l, args.open
-    return None, None, None
+    host_l = list(set(host_l)) if port_l else None  # Convert list to set to delete duplicate values
+    return host_l, port_l, args.open
 
 
 
