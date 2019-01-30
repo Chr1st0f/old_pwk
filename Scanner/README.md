@@ -13,20 +13,16 @@
         port_scanner.py [-h] (-target host[,host, ...] | -net[,net,...])
                        -port p[,p...] [--open] [--verbose]
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -target host [host ...], -t host [host ...]
-                        one or more target hostnames or IP adresses to scan.
-                        e.g : -t 10.0.0.2,localhost
-  -net net,[net ...], -n net [net ...]
-                        network e.g: -net 10.11.1.0/24
-  -port p,[p ...], -p p [p ...]
-                        list of port and/or range ( -p 1,80,100,105-120)
-  --open                Only show open (or possibly open) ports
-  --verbose, -v         Verbose mode
+        optional arguments:
+        -h, --help            show this help message and exit
+        -target host [host ...], -t host [host ...]     one or more target hostnames or IP adresses to scan.
+        -net net,[net ...], -n net [net ...]            # list of networks ( -net 192.168.1.0/24,10.0.0.0/24 )
+        -port p,[p ...], -p p [p ...]                   # list of port and/or range ( -p 1,80,100,105-120)
+        --open                Only show open (or possibly open) ports
+        --verbose, -v         Verbose mode
 ##
-e.g : ./port_scanner.py -target 192.168.1.127,localhost,kali -port 21,22,80,440-500 --open
-      ./port_scanner.py -target 192.168.1.0/24,10.0.0.1/24 -port 21,22,80,440-500 --open -v
+        e.g : ./port_scanner.py -target 192.168.1.127,localhost,kali -port 21,22,80,440-500 --open
+        ./port_scanner.py -target 192.168.1.0/24,10.0.0.1/24 -port 21,22,80,440-500 --open -v
 
     
 In Progress : Include banner grabbing
