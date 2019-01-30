@@ -1,10 +1,10 @@
 # Usage port_scanner.py
-##
-## usage: port_scanner.py [-h] (-target host [host ...] | -net net [net ...])
-                       -port p [p ...] [--open] [--verbose]
 
-Script who scan port for a host or a list of hosts and more ...
-Using for PWK OSCP exam
+## Script who scan port for a host or a list of hosts and more ...
+## Using for PWK OSCP exam
+
+## usage: port_scanner.py [-h] (-target host[,host, ...] | -net[,net,...])
+##                       -port p[,p...] [--open] [--verbose]
 
 optional arguments:
   -h, --help            show this help message and exit
