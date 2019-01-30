@@ -1,3 +1,4 @@
+#!--*--coding:utf-8--*--
 usage: port_scanner.py [-h] (-target host [host ...] | -net net [net ...])
                        -port p [p ...] [--open] [--verbose]
 
