@@ -108,21 +108,18 @@ def get_args():
     if args.net:
         # Split a network to a list of IPs
         for net_field in args.net[0].split(","):
-
-            n, m = net_field.split("/")
-            if m != '24':
+            n, m = re.split(r'/', net_field)
+            # n, m = net_field.split("/")
+            if m and m != '24':
                 print_message("Error : param ( {}/{} ) not taken into account".format(n,m), 'E')
                 print_message("Only 24 mask is implemented", 'E')
+            elif re.search(r'^([0-9]{1,3}\.){3}[0-9]{1,3}$', n):
+                for r in range(1, 255):
+                    host_l.append(re.search(r'^([0-9]{1,3}\.){3}', n).group(0) + str(r))
+                host_l = list(set(host_l)) # Convert list to set to delete duplicate values
+                return host_l, port_l, args.open
             else:
-                n_r = re.search(r'^([0-9]{1,3}\.){3}', n)
-                if n_r:
-                    for r in range(1, 255):
-                        host_l.append(n_r.group(0) + str(r))
-                    host_l = list(set(host_l)) # Convert list to set to delete duplicate values
-
-                    return host_l, port_l, args.open
-                else:
-                    print_message("Error : Bad network ( {}/{} ) not taken into account.".format(n,m), 'E')
+                print_message("Error : Bad network ( {}/{} ) not taken into account.".format(n,m), 'E')
     elif args.target:
         for h in args.target[0].split(","):
             # Check pattern in the host 1-25 chars with . allowed
@@ -163,7 +160,7 @@ def scanner_worker_thread():
         what I want to launch in my thread """
     while True:
         host, port = port_queue.get()  # Get the next (host,port) in the queue
-        print_message("Get {} {} in the queue".format(host, port), 'I') if fl_verbose else None
+        print_message("Got {} {} in the queue".format(host, port), 'I') if fl_verbose else None
         if is_port_open(host, port):
             result_dic[host, port]= True
         else:
@@ -190,8 +187,8 @@ def print_message(message, type):
     [E]: Error
     [W]: Warning
 
-    :param message: Message to print
-    :param type: Type of message
+    :param message: str Message to print
+    :param type: str Type of message
     :return: None
     """
     print("[{:3s}] {}".format(tmess_dic[type],message))
@@ -207,12 +204,12 @@ host_list, port_list , fl_port_open = get_args()
 if host_list and port_list:
 
     # Create thread for each is_port_open
-    for t_n in range(NUMBER_OF_THREADS):
+    for _ in range(NUMBER_OF_THREADS):
         # Creation of thread can be done with args or kwargs
         t = threading.Thread(target=scanner_worker_thread)
         t.daemon = True
         t.start()
-        print_message("Thread {} created".format(t_n), 'I') if fl_verbose else None # Print only if verbose flag
+    print_message("{} threads created".format(NUMBER_OF_THREADS), 'I') if fl_verbose else None # Print only if verbose flag
 
     for h in host_list:
         for p in port_list:
