@@ -55,7 +55,7 @@ def get_args():
     """ Treate / get / parse arguments
         And return host/network , port/list of ports , open
     """
-    global fl_verbose # Flag argument verbose to be used by all program
+    global fl_verbose, fl_banner # Flag argument verbose to be used by all program
     # Get/Check/Parse args
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -73,13 +73,17 @@ def get_args():
                         help="list of port and/or range ( -p 1,80,100,105-120)")
     parser.add_argument('--open', action='store_true',
                         help="Only show open (or possibly open) ports")
+    parser.add_argument('--banner', action='store_true',
+                        help="Get banner on the open ports")
     parser.add_argument('--verbose', '-v', action='store_true')
     args = parser.parse_args()
 
     # Treate args
     port_l = list()
     host_l = list()
-    fl_verbose = True if args.verbose else False # Activate the global flag verbose used
+    fl_verbose = True if args.verbose else False # Activate the global flag verbose
+    fl_banner = True if args.banner else False # Activate the global flag banner
+
 
     # Treate port args: -port and load in port_l
     for p in args.port[0].split(","):
@@ -135,12 +139,36 @@ def is_port_open(host, port):
         sock = socket.socket()              # Create a socket object
         sock.settimeout(timeout_threads)    # Set parameters on this object
         sock.connect((host, int(port)))     # TCP full connect
+#        if fl_banner:
+#            sock.send(b'ViolentPython\r\n')
+#            result = sock.recv(100)
+#            print_message("Content is : {}".format(result),type='W')
         sock.close()                        # Close the socket
     except socket.error:
         return False  # port not open
     return True  # port open
 
+def grab_banner(host, port):
+    """ Open socket for host,port association
+        Send message and try to grab banner
 
+        :param host: Hostname/IP
+        :param port: port
+        :type host: str
+        :type port: str
+
+    """
+    try:
+        sock = socket.socket()              # Create a socket object
+        sock.settimeout(timeout_threads)    # Set parameters on this object
+        sock.connect((host, int(port)))     # TCP full connect
+        sock.send(b'ViolentPython\r\n')
+        result = sock.recv(50)
+        sock.close()                        # Close the socket
+        print_message("Content is : {:20s}".format(str(result)), type='W')
+    except socket.error:
+        return False  # port not open
+    return result  # port open
 
 def scanner_worker_thread():
     """ Launch function is_port_open in get port number in the queue
@@ -150,6 +178,7 @@ def scanner_worker_thread():
         print_message("Got {} {} in the queue".format(host, port)) if fl_verbose else None
         if is_port_open(host, port):
             result_dic[host, port]= True
+            grab_banner(host, port) if fl_banner else None
         else:
             result_dic[host, port]= False
         port_queue.task_done()  # After a get in the queue to validate and consume
