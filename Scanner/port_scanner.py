@@ -10,16 +10,6 @@ Role :  Create a script to scan hosts/ a LAN in selecting port /& range of ports
         Script has been done especially for PWK test to help me to understand how to hack / scan ... servers 
         and perhaps win time for the test. 
     
-        
-Next Feature :  I am going to include the next actions regarding a specific port 
-                do action 
-                For instance, an HTTP server, take the banner an provide informations 
-                to accelerate the resolution to hack this port on this server
-                ( to avoid a HTTP hidden on an exotic port number )
-
-If you would like to use this script, no problem but you have ti understand how it work. 
-It the goal of this script.
-
 '''
 
 # Declaration part ####################################################################
@@ -101,7 +91,7 @@ def get_args():
             port_l.append(int(p))
         else:
             print_message("Param ( {} ) not taken into account. Port Max {}".format(p, port_param_max),
-                          'E')
+                          'W')
     port_l= sorted(list(set(port_l))) if port_l else None # Convert list to set to delete duplicate values and sort
 
     # Treate net and target args: -target and -net
@@ -125,7 +115,7 @@ def get_args():
             if re.search(r'^[A-Za-z0-9._]{1,25}$', h):
                 host_l.append(h)
             else:
-                print_message("Error : Host ( {} ) not taken into account.".format(h), 'E')
+                print_message("Error : Host ( {} ) not taken into account.".format(h), 'W')
     host_l = list(set(host_l)) if port_l else None  # Convert list to set to delete duplicate values
     return host_l, port_l, args.open
 
@@ -183,37 +173,42 @@ def print_message(message, type):
     [I]: Information
     [E]: Error
     [W]: Warning
-
-    :param message: str Message to print
-    :param type: str Type of message
-    :return: None
     """
     print("[{:3s}] {}".format(tmess_dic[type],message))
 
 
+#def create_thread():
+
+
 # Main ###############################################################################
-time_consumed = {}
-time_consumed['start_time'] = time.time() # Register time to measure the time of treatement
+def main():
+    global fl_port_open  # Global variable used in others functions
+    time_consumed = {}
+    time_consumed['start_time'] = time.time() # Register time to measure the time of treatement
 
-# Get arguments in each list
-host_list, port_list , fl_port_open = get_args()
-# Only if the params are returned
-if host_list and port_list:
+    # Get arguments in each list
+    host_list, port_list , fl_port_open = get_args()
+    # Only if the params are returned
+    if host_list and port_list:
 
-    # Create thread for each is_port_open
-    for _ in range(NUMBER_OF_THREADS):
-        # Creation of thread can be done with args or kwargs
-        t = threading.Thread(target=scanner_worker_thread)
-        t.daemon = True
-        t.start()
-    print_message("{} threads created".format(NUMBER_OF_THREADS), 'I') if fl_verbose else None # Print only if verbose flag
+        # Create thread for each is_port_open
+        for _ in range(NUMBER_OF_THREADS):
+            # Creation of thread
+            t = threading.Thread(target=scanner_worker_thread)
+            t.daemon = True
+            t.start()
+        print_message("{} threads created".format(NUMBER_OF_THREADS), 'I') if fl_verbose else None # Print only if verbose flag
 
-    for h in host_list:
-        for p in port_list:
-            port_queue.put((h, p))  # Fill the queue with tuple (host,port)
-            print_message("Put {} {} in the queue".format(h,p), 'I') if fl_verbose else None
-    port_queue.join()  # Waiting for all threads are terminated. Timeout in second
-    print_result(result_dic)
+        for h in host_list:
+            for p in port_list:
+                port_queue.put((h, p))  # Fill the queue with tuple (host,port)
+                print_message("Put {} {} in the queue".format(h,p), 'I') if fl_verbose else None
+        port_queue.join()  # Waiting for all threads are terminated. Timeout in second
+        print_result(result_dic)
 
-time_consumed['time_end'] = time.time()
-print("Done. Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
+    time_consumed['time_end'] = time.time()
+    print("Done. Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
+
+
+if __name__ == '__main__':
+    main()
