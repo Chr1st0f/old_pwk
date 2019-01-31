@@ -47,7 +47,8 @@ result_dic = {} # Store all scan result: char host, int port, bool opened
 tmess_dic = {
     'I': "Inf",
     'E': "Err",
-    'W': "War"
+    'W': "War",
+    'L': "Log"
 } # Store type of message for print_message def
 
 # Function part ####################################################################
@@ -177,7 +178,25 @@ def print_message(message, type):
     print("[{:3s}] {}".format(tmess_dic[type],message))
 
 
-#def create_thread():
+def create_thread():
+    """
+    Create threads and launch main function scanner_worker_thread
+    :return:
+    """
+    for _ in range(NUMBER_OF_THREADS):
+        # Creation of thread
+        t = threading.Thread(target=scanner_worker_thread)
+        t.daemon = True
+        t.start()
+    print_message("{} threads created".format(NUMBER_OF_THREADS),
+                  'I') if fl_verbose else None  # Print only if verbose flag
+
+def fill_queue(host_list,port_list):
+    for h in host_list:
+        for p in port_list:
+            port_queue.put((h, p))  # Fill the queue with tuple (host,port)
+            print_message("Put {} {} in the queue".format(h, p), 'I') if fl_verbose else None
+    port_queue.join()  # Waiting for all threads are terminated. Timeout in second
 
 
 # Main ###############################################################################
@@ -190,22 +209,9 @@ def main():
     host_list, port_list , fl_port_open = get_args()
     # Only if the params are returned
     if host_list and port_list:
-
-        # Create thread for each is_port_open
-        for _ in range(NUMBER_OF_THREADS):
-            # Creation of thread
-            t = threading.Thread(target=scanner_worker_thread)
-            t.daemon = True
-            t.start()
-        print_message("{} threads created".format(NUMBER_OF_THREADS), 'I') if fl_verbose else None # Print only if verbose flag
-
-        for h in host_list:
-            for p in port_list:
-                port_queue.put((h, p))  # Fill the queue with tuple (host,port)
-                print_message("Put {} {} in the queue".format(h,p), 'I') if fl_verbose else None
-        port_queue.join()  # Waiting for all threads are terminated. Timeout in second
+        create_thread()
+        fill_queue(host_list,port_list)
         print_result(result_dic)
-
     time_consumed['time_end'] = time.time()
     print("Done. Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
 
