@@ -43,12 +43,11 @@ commom_ports = {
 }
 port_queue = queue.Queue()  # Create a Queue object
 result_dic = {} # Store all scan result: char host, int port, bool opened
-
 tmess_dic = {
-    'I': "Inf",
-    'E': "Err",
-    'W': "War",
-    'L': "Log"
+    'I': 'Inf',
+    'E': 'Err',
+    'W': 'War',
+    'L': 'Log'
 } # Store type of message for print_message def
 
 # Function part ####################################################################
@@ -92,7 +91,7 @@ def get_args():
             port_l.append(int(p))
         else:
             print_message("Param ( {} ) not taken into account. Port Max {}".format(p, port_param_max),
-                          'W')
+                          type='W')
     port_l= sorted(list(set(port_l))) if port_l else None # Convert list to set to delete duplicate values and sort
 
     # Treate net and target args: -target and -net
@@ -101,22 +100,22 @@ def get_args():
         for net_field in args.net[0].split(","):
             n, m = re.split(r'/', net_field)
             if m and m != '24':         # only manage this netmask
-                print_message("Error : param ( {}/{} ) not taken into account".format(n,m), 'E')
-                print_message("Only 24 mask is implemented", 'E')
+                print_message("Error : param ( {}/{} ) not taken into account".format(n,m), type='E')
+                print_message("Only 24 mask is implemented", type='E')
             elif re.search(r'^([0-9]{1,3}\.){3}[0-9]{1,3}$', n):
                 for r in range(1, 255):
                     host_l.append(re.search(r'^([0-9]{1,3}\.){3}', n).group(0) + str(r))
 
                # return host_l, port_l, args.open
             else:
-                print_message("Error : Bad network ( {}/{} ) not taken into account.".format(n,m), 'E')
+                print_message("Error : Bad network ( {}/{} ) not taken into account.".format(n,m), type='E')
     elif args.target:
         for h in args.target[0].split(","):
             # Check pattern in the host 1-25 chars with . allowed
             if re.search(r'^[A-Za-z0-9._]{1,25}$', h):
                 host_l.append(h)
             else:
-                print_message("Error : Host ( {} ) not taken into account.".format(h), 'W')
+                print_message("Error : Host ( {} ) not taken into account.".format(h), type='W')
     host_l = list(set(host_l)) if port_l else None  # Convert list to set to delete duplicate values
     return host_l, port_l, args.open
 
@@ -148,7 +147,7 @@ def scanner_worker_thread():
         what I want to launch in my thread """
     while True:
         host, port = port_queue.get()  # Get the next (host,port) in the queue
-        print_message("Got {} {} in the queue".format(host, port), 'I') if fl_verbose else None
+        print_message("Got {} {} in the queue".format(host, port)) if fl_verbose else None
         if is_port_open(host, port):
             result_dic[host, port]= True
         else:
@@ -164,17 +163,21 @@ def print_result(r_dic):
     :return: None
     """
     for (host, port), opened in sorted(r_dic.items()):
-        port_t = "({:7s})".format(commom_ports[port]) if port in commom_ports else ""
+        port_t = "({:6s})".format(commom_ports[port]) if port in commom_ports else ""
         if opened or ( not opened and not fl_port_open ):
-            print("{:15s}/{:4d} {:6s} {:6s}".format(host, port, port_t, port_status[opened]))
+            print_message("{:15s}/{:4d} {:8s} {:6s}".format(host, port, port_t, port_status[opened]), type='L')
 
-def print_message(message, type):
-    """
-    Print information message with different type in a specific format
+def print_message(message, **kwargs ):
+    """ Print information message with different type in a specific format
     [I]: Information
     [E]: Error
     [W]: Warning
+    [L]: Logging
+    if output is selected, all is written into this file
+    :param  **kwargs type
+
     """
+    type=kwargs.get('type','I') # Check kwargs type entered if no 'I'
     print("[{:3s}] {}".format(tmess_dic[type],message))
 
 
@@ -188,14 +191,13 @@ def create_thread():
         t = threading.Thread(target=scanner_worker_thread)
         t.daemon = True
         t.start()
-    print_message("{} threads created".format(NUMBER_OF_THREADS),
-                  'I') if fl_verbose else None  # Print only if verbose flag
+    print_message("{} threads created".format(NUMBER_OF_THREADS)) if fl_verbose else None  # Print only if verbose flag
 
 def fill_queue(host_list,port_list):
     for h in host_list:
         for p in port_list:
             port_queue.put((h, p))  # Fill the queue with tuple (host,port)
-            print_message("Put {} {} in the queue".format(h, p), 'I') if fl_verbose else None
+            print_message("Put {} {} in the queue".format(h, p)) if fl_verbose else None
     port_queue.join()  # Waiting for all threads are terminated. Timeout in second
 
 
@@ -213,8 +215,9 @@ def main():
         fill_queue(host_list,port_list)
         print_result(result_dic)
     time_consumed['time_end'] = time.time()
-    print("Done. Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
 
+    print_message("Done.")
+    print_message("Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
 
 if __name__ == '__main__':
     main()
