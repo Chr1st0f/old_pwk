@@ -77,6 +77,8 @@ def get_args():
                         help="Get banner on the open ports")
     parser.add_argument('--verbose', '-v', action='store_true')
     args = parser.parse_args()
+    # --banner need to be used with --open ( not mandatory but better to read )
+    parser.error("--banner requires --open argument") if args.banner and not args.open else None
 
     # Treate args
     port_l = list()
@@ -135,40 +137,22 @@ def is_port_open(host, port):
         :type port: str
         :return: True/False if the port is opened
     """
+    content_dic = {}
     try:
         sock = socket.socket()              # Create a socket object
         sock.settimeout(timeout_threads)    # Set parameters on this object
         sock.connect((host, int(port)))     # TCP full connect
-#        if fl_banner:
-#            sock.send(b'ViolentPython\r\n')
-#            result = sock.recv(100)
-#            print_message("Content is : {}".format(result),type='W')
+        if fl_banner:
+            sock.send(b'ViolentPython\r\n')
+            content_dic['banner'] = sock.recv(100)  # load content of banner into local dictionnary
         sock.close()                        # Close the socket
+        content_dic['opened'] = True  # port open
     except socket.error:
-        return False  # port not open
-    return True  # port open
+        content_dic['opened']= False # port not open
+    return content_dic
 
-def grab_banner(host, port):
-    """ Open socket for host,port association
-        Send message and try to grab banner
 
-        :param host: Hostname/IP
-        :param port: port
-        :type host: str
-        :type port: str
 
-    """
-    try:
-        sock = socket.socket()              # Create a socket object
-        sock.settimeout(timeout_threads)    # Set parameters on this object
-        sock.connect((host, int(port)))     # TCP full connect
-        sock.send(b'ViolentPython\r\n')
-        result = sock.recv(50)
-        sock.close()                        # Close the socket
-        print_message("Content is : {:20s}".format(str(result)), type='W')
-    except socket.error:
-        return False  # port not open
-    return result  # port open
 
 def scanner_worker_thread():
     """ Launch function is_port_open in get port number in the queue
@@ -176,11 +160,7 @@ def scanner_worker_thread():
     while True:
         host, port = port_queue.get()  # Get the next (host,port) in the queue
         print_message("Got {} {} in the queue".format(host, port)) if fl_verbose else None
-        if is_port_open(host, port):
-            result_dic[host, port]= True
-            grab_banner(host, port) if fl_banner else None
-        else:
-            result_dic[host, port]= False
+        result_dic[host, port] = is_port_open(host, port)
         port_queue.task_done()  # After a get in the queue to validate and consume
 
 
@@ -191,10 +171,16 @@ def print_result(r_dic):
     :param r_dic: Content of dictionnary {(str host,int port), bool status_port}
     :return: None
     """
-    for (host, port), opened in sorted(r_dic.items()):
-        port_t = "({:6s})".format(commom_ports[port]) if port in commom_ports else ""
-        if opened or ( not opened and not fl_port_open ):
-            print_message("{:15s}/{:4d} {:8s} {:6s}".format(host, port, port_t, port_status[opened]), type='L')
+    for (host, port), content_dic, in sorted(r_dic.items()):
+        port_t = "({:6s})".format(commom_ports[port]) if port in commom_ports else ""  # Load port known to print
+
+        banner = content_dic.get('banner')  # check in the dict if the 'banner' reference is there for this host/port
+        banner_p = str(banner) if banner else ""  # Load a variable to print if banner is not None
+        if content_dic['opened'] or ( not content_dic['opened'] and not fl_port_open):
+            print_message("{:15s}/{:4d} {:8s} {:6s} {:30s}".format(host, port, port_t,
+                                                                   port_status[content_dic['opened']],
+                                                                   banner_p), type='L')
+
 
 def print_message(message, **kwargs ):
     """ Print information message with different type in a specific format
@@ -247,6 +233,7 @@ def main():
 
     print_message("Done.")
     print_message("Scanning took {:5.2f} sec".format(time_consumed['time_end'] - time_consumed['start_time']))
+
 
 if __name__ == '__main__':
     main()
