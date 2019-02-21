@@ -1,4 +1,5 @@
-#!../venv/bin/python3
+#!../venvkali/bin/python3
+# venv for macbook ##!../venv/bin/python3
 #!--*--coding:utf-8--*--
 __author__ = 'Cazin Christophe'
 
