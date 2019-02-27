@@ -12,7 +12,6 @@ Role :  CSRF medium level on DVWA
 '''
 import requests, sys
 from termcolor import cprint
-import re
 from bs4 import BeautifulSoup
 
 # Declaration part
