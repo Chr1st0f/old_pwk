@@ -65,7 +65,7 @@ def get_attributes(url):
         soup = BeautifulSoup(r.text, 'html.parser')
         t = soup.find(attrs={'name': 'user_token'})
         if t:
-            # Adding the token in paylod to inject in the post
+            # Adding the token in payload to inject in the post
             payload['user_token']=t['value']
             print_wh('Stored hidden field user_token = {}'.format(payload['user_token']))
 
